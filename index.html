@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Hub - Multi-Purpose Llama Canvas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap');
+        
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f1f5f9; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .code-font { font-family: 'Fira Code', monospace; }
+        .markdown-content h1 { font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem; color: #fb923c; }
+        .markdown-content p { margin-bottom: 0.75rem; line-height: 1.5; }
+        .markdown-content ul { list-style-type: disc; margin-left: 1.25rem; margin-bottom: 0.75rem; }
+        .markdown-content code { background: #334155; padding: 0.1rem 0.3rem; border-radius: 4px; font-family: 'Fira Code', monospace; font-size: 0.85em; }
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #1e293b; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(249, 115, 22, 0.2); }
+            50% { box-shadow: 0 0 15px rgba(249, 115, 22, 0.5); }
+        }
+        .active-glow { animation: pulse-glow 2s infinite; }
+    </style>
+</head>
+<body class="h-screen overflow-hidden flex flex-col">
+
+    <!-- Header -->
+    <header class="h-16 flex items-center justify-between px-6 border-b border-slate-700 glass-panel z-10">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center shadow-lg active-glow">
+                <i class="fas fa-brain text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight leading-none">AI HUB</h1>
+                <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Multi-Purpose Intelligence</p>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-4">
+            <div class="flex bg-slate-800 rounded-lg p-1 border border-slate-700">
+                <button id="mode-auto" class="px-3 py-1 text-xs rounded-md bg-orange-600 text-white font-medium transition-all">Auto Detect</button>
+            </div>
+            <select id="modelSelect" class="bg-slate-800 border border-slate-600 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500">
+                <option value="llama-3.3-70b-versatile">Llama 3.3 70B</option>
+                <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+            </select>
+            <button onclick="clearAll()" class="text-slate-400 hover:text-white transition-colors">
+                <i class="fas fa-sync-alt"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- Left: Chat Interface -->
+        <div class="w-2/5 border-r border-slate-700 flex flex-col glass-panel">
+            <div id="chatHistory" class="flex-1 overflow-y-auto p-6 space-y-6">
+                <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
+                    <p class="text-xs text-orange-400 font-bold uppercase mb-2">System Initialized</p>
+                    <p class="text-sm text-slate-300">I am now a hybrid assistant. Ask me a question to chat here, or ask me to "build" something to trigger the Canvas on the right.</p>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-700 bg-slate-900/50">
+                <div class="relative">
+                    <textarea id="userInput" rows="3" 
+                        class="w-full bg-slate-800 border border-slate-700 rounded-2xl p-4 pr-14 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/50 resize-none transition-all"
+                        placeholder="Ask a question or request a build..."></textarea>
+                    <button id="sendBtn" onclick="processRequest()" 
+                        class="absolute right-3 bottom-3 w-10 h-10 bg-orange-600 rounded-xl flex items-center justify-center hover:bg-orange-500 shadow-lg transition-all">
+                        <i class="fas fa-paper-plane text-sm"></i>
+                    </button>
+                </div>
+                <div class="flex items-center justify-between mt-3 px-1">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <p class="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">Groq Acceleration Active</p>
+                    </div>
+                    <span id="statusLabel" class="text-[10px] text-orange-400 opacity-0 transition-opacity font-bold">Processing...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Canvas -->
+        <div class="flex-1 flex flex-col bg-slate-950">
+            <div class="h-12 border-b border-slate-800 flex items-center justify-between px-4">
+                <div class="flex items-center gap-4 h-full">
+                    <button onclick="setTab('preview')" id="tab-preview" class="text-xs font-bold text-orange-400 border-b-2 border-orange-400 h-full px-4 uppercase tracking-wider">Preview</button>
+                    <button onclick="setTab('code')" id="tab-code" class="text-xs font-bold text-slate-500 hover:text-white h-full px-4 uppercase tracking-wider">Source</button>
+                </div>
+                <div id="canvasStatus" class="text-[10px] text-slate-500 italic">Idle</div>
+            </div>
+
+            <div class="flex-1 relative overflow-hidden bg-white">
+                <div id="previewContainer" class="absolute inset-0">
+                    <iframe id="outputFrame" class="w-full h-full border-none"></iframe>
+                </div>
+
+                <div id="codeContainer" class="absolute inset-0 bg-slate-900 hidden">
+                    <pre class="p-6 code-font text-[11px] text-emerald-400 overflow-auto h-full"><code id="codeOutput">// Code will be generated here...</code></pre>
+                </div>
+
+                <div id="loader" class="absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center z-50 hidden">
+                    <div class="relative">
+                        <div class="w-20 h-20 border-2 border-orange-500/20 rounded-full"></div>
+                        <div class="absolute inset-0 w-20 h-20 border-t-2 border-orange-500 rounded-full animate-spin"></div>
+                        <i class="fas fa-microchip absolute inset-0 flex items-center justify-center text-orange-500 text-xl"></i>
+                    </div>
+                    <p class="mt-6 text-orange-500 font-bold text-xs uppercase tracking-[0.3em] animate-pulse">Generating Response</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const GROQ_API_KEY = "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";
+        const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+
+        const chatHistory = document.getElementById('chatHistory');
+        const userInput = document.getElementById('userInput');
+        const codeOutput = document.getElementById('codeOutput');
+        const outputFrame = document.getElementById('outputFrame');
+        const loader = document.getElementById('loader');
+        const modelSelect = document.getElementById('modelSelect');
+        const statusLabel = document.getElementById('statusLabel');
+        const canvasStatus = document.getElementById('canvasStatus');
+
+        let currentCode = "";
+
+        async function processRequest() {
+            const prompt = userInput.value.trim();
+            if (!prompt) return;
+
+            addChatMessage('user', prompt);
+            userInput.value = "";
+            loader.classList.remove('hidden');
+            statusLabel.classList.remove('opacity-0');
+
+            const systemPrompt = `You are a multi-purpose AI assistant. 
+            You must decide if the user's request requires building a functional web application/component (CANVAS) or just a textual answer (CHAT).
+
+            IF BUILDING (CANVAS):
+            - Start your response with the tag: [CANVAS_MODE]
+            - Then provide EXACTLY ONE complete, self-contained HTML file.
+            - Use Tailwind CSS CDN. Include all scripts/styles. 
+            - No markdown blocks like \`\`\`html. Just the code.
+
+            IF CHATTING (CHAT):
+            - Start your response with the tag: [CHAT_MODE]
+            - Provide your answer in professional Markdown format.
+            - Answer questions, explain concepts, or give advice.
+
+            DECISION CRITERIA:
+            - If user says "build", "create a page", "make a tool", "code a...", use [CANVAS_MODE].
+            - If user asks a question, requests a list, or seeks explanation, use [CHAT_MODE].`;
+
+            try {
+                const response = await fetch(GROQ_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${GROQ_API_KEY}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: modelSelect.value,
+                        messages: [
+                            { role: "system", content: systemPrompt },
+                            { role: "user", content: prompt }
+                        ],
+                        temperature: 0.5,
+                        max_tokens: 4000
+                    })
+                });
+
+                const data = await response.json();
+                const content = data.choices[0].message.content;
+
+                if (content.includes('[CANVAS_MODE]')) {
+                    const code = content.replace('[CANVAS_MODE]', '').trim();
+                    currentCode = code.replace(/```html|```/g, "").trim();
+                    updateCanvas(currentCode);
+                    addChatMessage('ai', "I've generated the code for you. Check the Preview window on the right.");
+                    canvasStatus.innerText = "Last update: " + new Date().toLocaleTimeString();
+                } else {
+                    const text = content.replace('[CHAT_MODE]', '').trim();
+                    addChatMessage('ai', text, true);
+                }
+
+            } catch (error) {
+                addChatMessage('ai', "Error processing request: " + error.message);
+            } finally {
+                loader.classList.add('hidden');
+                statusLabel.classList.add('opacity-0');
+            }
+        }
+
+        function updateCanvas(code) {
+            codeOutput.textContent = code;
+            const blob = new Blob([code], { type: 'text/html' });
+            outputFrame.src = URL.createObjectURL(blob);
+            setTab('preview');
+        }
+
+        function addChatMessage(role, text, isMarkdown = false) {
+            const div = document.createElement('div');
+            div.className = role === 'user' ? 'flex justify-end' : 'flex justify-start';
+            
+            const content = isMarkdown ? marked.parse(text) : text;
+            
+            div.innerHTML = `
+                <div class="max-w-[90%] ${role === 'user' ? 'bg-orange-600' : 'bg-slate-800 border border-slate-700'} p-4 rounded-2xl shadow-sm">
+                    <p class="text-[10px] ${role === 'user' ? 'text-orange-200' : 'text-orange-400'} font-black uppercase mb-2 tracking-widest">${role}</p>
+                    <div class="text-sm ${role === 'user' ? 'text-white' : 'text-slate-200'} markdown-content leading-relaxed">${content}</div>
+                </div>
+            `;
+            chatHistory.appendChild(div);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        function setTab(tab) {
+            const preview = document.getElementById('previewContainer');
+            const code = document.getElementById('codeContainer');
+            const tPreview = document.getElementById('tab-preview');
+            const tCode = document.getElementById('tab-code');
+
+            if (tab === 'preview') {
+                preview.classList.remove('hidden');
+                code.classList.add('hidden');
+                tPreview.className = "text-xs font-bold text-orange-400 border-b-2 border-orange-400 h-full px-4 uppercase tracking-wider";
+                tCode.className = "text-xs font-bold text-slate-500 hover:text-white h-full px-4 uppercase tracking-wider";
+            } else {
+                preview.classList.add('hidden');
+                code.classList.remove('hidden');
+                tCode.className = "text-xs font-bold text-orange-400 border-b-2 border-orange-400 h-full px-4 uppercase tracking-wider";
+                tPreview.className = "text-xs font-bold text-slate-500 hover:text-white h-full px-4 uppercase tracking-wider";
+            }
+        }
+
+        function clearAll() {
+            chatHistory.innerHTML = "";
+            addChatMessage('ai', "All sessions cleared. Ready for new instructions.");
+            updateCanvas("<html><body style='background:#0f172a; display:flex; align-items:center; justify-content:center; height:100vh; color:#475569; font-family:sans-serif;'><h3>Canvas Ready</h3></body></html>");
+        }
+
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                processRequest();
+            }
+        });
+    </script>
+</body>
+</html>
